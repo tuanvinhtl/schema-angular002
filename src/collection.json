@@ -1,0 +1,24 @@
+{
+  "$schema": "../node_modules/@angular-devkit/schematics/collection-schema.json",
+  "schematics": {
+    "hello-world": {
+      "description": "A blank schematic.",
+      "factory": "./hello-world/index#helloWorld",
+      "schema": "./hello-world/schema.json",
+      "aliases": ["dive"]
+    },
+    "goodbye-world": {
+      "description": "A blank schematic.",
+      "factory": "./goodbye-world/index#goodbyeWorld"
+    },
+    "ng-add": {
+      "description": "A blank schematic.",
+      "factory": "./ng-add/index#ngAdd"
+    },
+    "my-service": {
+      "description": "A blank schematic.",
+      "factory": "./my-service/index#myService",
+      "schema": "./my-service/schema.json"
+    }
+  }
+}
