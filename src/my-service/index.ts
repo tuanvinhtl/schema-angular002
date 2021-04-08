@@ -4,6 +4,8 @@ import {
   chain, mergeWith
 } from '@angular-devkit/schematics';
 
+import { addModuleImportToModule } from 'schematics-utilities';
+
 import { strings, normalize, virtualFs, workspaces } from '@angular-devkit/core';
 
 import { Schema as MyServiceSchema } from './schema';
@@ -47,8 +49,16 @@ export function myService(options: MyServiceSchema): Rule {
     const projectType = project.extensions.projectType === 'application' ? 'app' : 'lib';
 
     if (options.path === undefined) {
-      options.path = `${project.sourceRoot}/${projectType}`;
+      options.path = `${project.sourceRoot}/${projectType}/modules/home/pages`;
     }
+
+    console.log(options.path)
+
+        // add imports to app.module.ts
+        addModuleImportToModule(tree,
+          `${project.sourceRoot}/${projectType}/modules/home/home.module.ts`,
+          `HomeModule`,
+          `./${options.name}/.module`);
 
     const templateSource = apply(url('./files'), [
       applyTemplates({

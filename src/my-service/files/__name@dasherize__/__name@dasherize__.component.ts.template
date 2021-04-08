@@ -1,0 +1,291 @@
+import { HttpParams } from '@angular/common/http';
+import { AfterViewInit, Component, ElementRef, OnInit, Renderer2, ViewChild } from '@angular/core';
+import { FormBuilder, FormGroup } from '@angular/forms';
+import { MatPaginator } from '@angular/material/paginator';
+import { NavigationExtras, Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
+import { BaseComponent } from 'src/app/core/base/base.component';
+import { ApiService } from 'src/app/core/services/api.service';
+import { Location } from '@angular/common';
+import { MatDialog } from '@angular/material/dialog';
+import { debounceTime, delay, distinctUntilChanged, flatMap, map, mergeMap } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { SnapShotStore } from 'src/app/core/base/snapshot-data';
+import { state } from '@angular/animations';
+
+
+@Component({
+  selector: 'app-<%= name %>',
+  templateUrl: './<%= name %>.component.html',
+  styleUrls: ['./<%= name %>.component.scss']
+})
+export class <%= classify(name) %>Component extends BaseComponent implements OnInit, AfterViewInit {
+
+  displayedColumns: string[] = ['code', 'name', 'brandName', 'departmentName', 'lastStartedDate', 'isWorking'];
+
+  @ViewChild('paginator') paginator: MatPaginator;
+  @ViewChild('navSettings') navSettings: ElementRef;
+  isNavOpened = false;
+
+  public form: FormGroup;
+  getFieldsSetting = [
+    {
+      type: 'slider',
+      name: 'manufacturedDateRange',
+      label: 'Manufactured date range',
+      min: 10,
+      max: 75,
+      options: {
+        floor: 0,
+        ceil: 100
+      }
+    },
+    {
+      type: 'range-picker',
+      name: 'lastStartedDate',
+      groupControls: {
+        start: 'start',
+        end: 'end'
+      },
+      label: 'Started date',
+      min: 0,
+      max: 0,
+      options: {
+        floor: 0,
+        ceil: 2030
+      }
+    },
+  ]
+  public fields: any[] = [
+    {
+      type: 'text',
+      name: 'code',
+      label: 'Equipment code',
+      value: '',
+    },
+    {
+      type: 'text',
+      name: 'name',
+      label: 'Name',
+      value: '',
+    },
+    {
+      type: 'text',
+      name: 'DepartmentName',
+      label: 'Department name',
+      value: '',
+    },
+    {
+      type: 'slider',
+      name: 'manufacturedDate',
+      label: 'Manufactured date',
+      min: 0,
+      max: 0,
+      options: {
+        floor: 0,
+        ceil: 2030
+      }
+    },
+    {
+      type: 'range-picker',
+      name: 'lastStartedDate',
+      groupControls: {
+        start: 'start',
+        end: 'end'
+      },
+      label: 'Started date',
+      min: 0,
+      max: 0,
+      options: {
+        floor: 0,
+        ceil: 2030
+      }
+    },
+    {
+      type: 'dropdown',
+      name: 'isWorking',
+      label: 'Status working',
+      value: 'all',
+      options: [
+        { key: 'all', label: 'All' },
+        { key: true, label: 'Available' },
+        { key: false, label: 'Unavailable' }
+      ]
+    }
+  ];
+
+  Operands = [];
+
+  public dynamicSearchDef = {
+    Where: {
+      OperatorType: 'And',
+      Operands: []
+    },
+    orderBy: [
+      {
+        field: 'CreatedAt',
+        order: 'Desc'
+      }
+    ]
+  };
+
+  constructor(
+    public apiService: ApiService,
+    public toastr: ToastrService,
+    public router: Router,
+    public location: Location,
+    public dialog: MatDialog,
+    public render: Renderer2,
+    private elem: ElementRef,
+    public store: SnapShotStore,
+    public fb: FormBuilder) {
+    super(apiService, dialog, location, fb, store);
+  }
+
+  ngOnInit(): void {
+    this.loadDataSourceByFilter('/<%= name %>/filter', { pageIndex: this.pageIndex, pageSize: this.pageSize, length: 100 });
+    console.log(this.store.state)
+  }
+
+  deleteAction() {
+    this.apiService.delete('/<%= name %>/' + this.selectedRowIndex).subscribe(x => {
+      if (x) {
+        this.toastr.success('Hello world!', 'Toastr fun!');
+        this.pageIndex = 0;
+        this.paginator.firstPage();
+        this.loadDataSourceByFilter('/<%= name %>/filter',
+          { pageIndex: this.pageIndex, pageSize: this.pageSize, length: 100 }, this.Operands);
+      }
+    }, err => {
+      this.toastr.error('Err', 'Toastr fun!');
+    });
+  }
+
+  submitSearch() {
+    this.loadDataSourceByFilter('/<%= name %>/filter', { pageIndex: this.pageIndex, pageSize: this.pageSize, length: 100 }, this.Operands);
+  }
+
+  addAction() {
+    this.router.navigate(['/<%= name %>/create']);
+  }
+
+  editAction(rowData) {
+    this.router.navigate(['/<%= name %>/edit/' + rowData.id], {
+      state: rowData
+    });
+  }
+
+  doubleClickForNavigate(row) {
+    this.router.navigate(['/<%= name %>/edit/' + row.id], {
+      state: row
+    });
+    this.store.state.snapshot.set(row.id, row)
+  }
+
+
+  getFields() {
+    return this.fields;
+  }
+
+  getFieldsSettings() {
+    return this.getFieldsSetting;
+  }
+
+  searchSettings(e: ElementRef) {
+    if (this.elem.nativeElement.getElementsByClassName('open-nav')[0]) {
+      this.render.removeClass(e, 'open-nav');
+      this.isNavOpened = false;
+    } else {
+      this.render.addClass(e, 'open-nav');
+      this.isNavOpened = true;
+    }
+  }
+  submitSettings(e) {
+    this.searchSettings(e);
+
+  }
+
+  ngAfterViewInit() {
+    this.dataSource.paginator = this.paginator;
+    this.formEmiterDistinctUntilChanged();
+  }
+
+  formEmiterDistinctUntilChanged() {
+    this.formSearchWF.valueChanges.pipe(
+      map((event: any) => event),
+      debounceTime(100),
+      distinctUntilChanged(),
+      mergeMap(search => of(search).pipe(delay(100)))
+    ).subscribe(formEmited => {
+
+      const dynamContrs = this.deleteObsHasNullable(formEmited);
+      this.pageIndex = 0;
+      this.paginator.firstPage();
+
+      const buidControls = [];
+      const dateRangeBuilderValue = [];
+      const arr = Object.keys(dynamContrs).map((key) => {
+
+        switch (key) {
+          case 'manufacturedDate':
+            const from = {
+              Field: key,
+              FilterType: 'GreaterThanOrEqual',
+              Value: dynamContrs[key][0]
+            };
+            const to = {
+              Field: key,
+              FilterType: 'LessThanOrEqual',
+              Value: dynamContrs[key][1]
+            };
+            buidControls.push(from, to);
+            return undefined;
+
+
+          case 'lastStartedDate':
+
+            if (dynamContrs[key].start && dynamContrs[key].end) {
+              const from = {
+                Field: key,
+                FilterType: 'GreaterThanOrEqual',
+                Value: (new Date(dynamContrs[key].start).getTime() / 1000)
+              };
+              const to = {
+                Field: key,
+                FilterType: 'LessThanOrEqual',
+                Value: (new Date(dynamContrs[key].end).getTime() / 1000)
+              };
+              dateRangeBuilderValue.push(from, to);
+              return undefined;
+            } else {
+              dateRangeBuilderValue.push();
+              return undefined;
+            }
+
+          case 'isWorking':
+            if (dynamContrs[key] === 'all') {
+              return undefined
+            }
+            return {
+              Field: key,
+              FilterType: 'Equal',
+              Value: dynamContrs[key]
+            };
+
+          default:
+
+            return {
+              Field: key,
+              FilterType: 'Contains',
+              Value: dynamContrs[key]
+            };
+        }
+      });
+
+      this.Operands = arr.concat(buidControls, dateRangeBuilderValue).filter((el) => {
+        return el != null;
+      });
+    });
+  }
+
+}

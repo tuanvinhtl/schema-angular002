@@ -1,0 +1,16 @@
+@import "../../../../../assets/scss/media.scss";
+
+.containers--right {
+  flex: 5;
+}
+
+.containers--left {
+  display: flex;
+  flex-direction: column;
+  @include respond(phone) {
+    display: none;
+  }
+  @include respond(tab-port) {
+    display: none;
+  }
+}

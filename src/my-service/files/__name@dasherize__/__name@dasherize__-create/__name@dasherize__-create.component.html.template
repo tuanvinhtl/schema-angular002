@@ -5,6 +5,6 @@ import { HttpClient } from '@angular/common/http';
 @Injectable({
   providedIn: 'root'
 })
-export class <%= classify(name) %>Service {
+export class <%= classify(name) %>EditComponent {
   constructor(private http: HttpClient) { }
 }
